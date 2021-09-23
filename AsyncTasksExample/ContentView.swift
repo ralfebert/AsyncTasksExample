@@ -3,6 +3,7 @@ import SwiftUI
 
 class ExampleModel: ObservableObject {
     @Published var result: [String: Int]?
+    let urls = [URL(string: "https://www.spiegel.de/")!, URL(string: "https://www.sueddeutsche.de/")!]
     let terms = "Corona,Klima,Wahl".components(separatedBy: ",")
 
     func countTermsFor(url: URL) async throws -> [String: Int] {
@@ -11,11 +12,23 @@ class ExampleModel: ObservableObject {
     }
 
     func refresh() async throws {
-        print("Getting term count for Spiegel")
-        let termCountSpiegel = try await countTermsFor(url: URL(string: "https://www.spiegel.de/")!)
-        print("term count for spiegel.de: ", termCountSpiegel)
+        let results = try await withThrowingTaskGroup(of: [String: Int].self) { group -> [String: Int] in
 
-        await self.updateResults(termCountSpiegel)
+            for url in urls {
+                group.addTask {
+                    print("Getting term count for \(url)")
+                    let termCountSpiegel = try await self.countTermsFor(url: url)
+                    print("term count for spiegel.de: ", termCountSpiegel)
+                    return termCountSpiegel
+                }
+            }
+
+            return try await group.reduce([:]) { partialResult, nextResult in
+                partialResult.merging(nextResult, uniquingKeysWith: { $0 + $1 })
+            }
+        }
+
+        await self.updateResults(results)
     }
 
     func countTerms(string: String, terms: [String]) -> [String: Int] {
