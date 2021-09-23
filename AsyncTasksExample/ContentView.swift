@@ -12,18 +12,10 @@ class ExampleModel: ObservableObject {
 
     func refresh() async throws {
         print("Getting term count for Spiegel")
-        async let termCountSpiegel = try await countTermsFor(url: URL(string: "https://www.spiegel.de/")!)
+        let termCountSpiegel = try await countTermsFor(url: URL(string: "https://www.spiegel.de/")!)
+        print("term count for spiegel.de: ", termCountSpiegel)
 
-        print("Getting term count for SZ")
-        async let termCountSZ = try await countTermsFor(url: URL(string: "https://www.sueddeutsche.de/")!)
-
-        let termCountSpiegelResult = try await termCountSpiegel
-        let termCountSZResult = try await termCountSZ
-
-        print("term count for spiegel.de: ", termCountSpiegelResult)
-        print("term count for sueddeutsche.de: ", termCountSZResult)
-
-        await self.updateResults(termCountSpiegelResult.merging(termCountSZResult, uniquingKeysWith: { first, last in first + last }))
+        await self.updateResults(termCountSpiegel)
     }
 
     func countTerms(string: String, terms: [String]) -> [String: Int] {
